@@ -12,6 +12,7 @@ from core.templates.registry import ContractRegistry, ContractTypeInfo
 from core.validator import validate_party_requisites, validate_inn, validate_bik, suggest_party_by_inn
 from core.rendering.docx_engine import DocxEngine
 from core.rendering.typst_engine import TypstEngine
+from core.rendering.pdf_engine import PDFEngine
 from core.rendering.libreoffice_engine import LibreOfficeEngine
 from core.num_to_words import format_legal_contract_amount, format_rubles
 
@@ -157,41 +158,49 @@ def generate_typst_source(payload: ContractPayload):
 
 @router.post("/generate/pdf")
 def generate_pdf(payload: ContractPayload):
-    """Generate PDF using Typst or LibreOffice fallback."""
+    """Generate PDF using ReportLab (primary), then Typst or LibreOffice as fallbacks."""
     try:
         contract = ContractRegistry.parse_contract(payload.contract_type, payload.data)
+        filename = f"Contract_{payload.contract_type}_{contract.metadata.contract_number.replace('/', '_')}.pdf"
+        encoded_filename = quote(filename)
 
-        # Try Typst PDF compilation
+        # Primary: ReportLab pure-Python PDF engine (always available)
+        try:
+            pdf_buf = PDFEngine.generate(contract)
+            return StreamingResponse(
+                pdf_buf,
+                media_type="application/pdf",
+                headers={"Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"}
+            )
+        except Exception:
+            pass  # fall through to next engine
+
+        # Fallback 1: Typst CLI
         pdf_bytes = TypstEngine.compile_pdf(contract)
-        # Check if bytes start with %PDF
         if pdf_bytes.startswith(b"%PDF"):
-            filename = f"Contract_{payload.contract_type}_{contract.metadata.contract_number.replace('/', '_')}.pdf"
-            encoded_filename = quote(filename)
             return StreamingResponse(
                 io.BytesIO(pdf_bytes),
                 media_type="application/pdf",
                 headers={"Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"}
             )
 
-        # Fallback to LibreOffice if available
+        # Fallback 2: LibreOffice
         docx_buf = DocxEngine.generate(contract)
         lo_pdf = LibreOfficeEngine.convert_docx_to_pdf(docx_buf.getvalue())
         if lo_pdf and lo_pdf.startswith(b"%PDF"):
-            filename = f"Contract_{payload.contract_type}_{contract.metadata.contract_number.replace('/', '_')}.pdf"
-            encoded_filename = quote(filename)
             return StreamingResponse(
                 io.BytesIO(lo_pdf),
                 media_type="application/pdf",
                 headers={"Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"}
             )
 
-        # If PDF compiler not found, return Typst source code file with clear instructions
-        filename = f"Contract_{payload.contract_type}_{contract.metadata.contract_number.replace('/', '_')}.typ"
-        encoded_filename = quote(filename)
+        # Last resort: return Typst source
+        typ_filename = filename.replace(".pdf", ".typ")
+        encoded_typ = quote(typ_filename)
         return StreamingResponse(
             io.BytesIO(pdf_bytes),
             media_type="text/plain",
-            headers={"Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"}
+            headers={"Content-Disposition": f"attachment; filename*=UTF-8''{encoded_typ}"}
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Ошибка генерации PDF: {str(e)}")
