@@ -1,5 +1,3 @@
-"""Contract Registry and Modular Document Assembler."""
-
 from __future__ import annotations
 from typing import Dict, Any, Type, List
 from pydantic import BaseModel
@@ -11,6 +9,9 @@ from core.models.supply import SupplyContract, SupplyItem, DeliveryTerms
 from core.models.services import ServiceContract, ServiceItem, ServiceTerms
 from core.models.work import WorkContract, WorkStage, WorkTerms
 from core.models.nda import NDAContract, NDAScope, NDATerms
+from core.models.lease import LeaseContract, LeaseObject, LeaseTerms
+from core.models.license_sw import LicenseSWContract, SoftwareDeliverable, LicenseTerms, LicenseType
+from core.models.freelance import FreelanceContract, FreelanceTask, FreelanceTerms
 
 from core.templates.clauses.preamble import build_preamble_clauses
 from core.templates.clauses.subject import build_subject_clauses
@@ -22,6 +23,9 @@ from core.templates.clauses.confidentiality import build_confidentiality_clauses
 from core.templates.clauses.dispute_resolution import build_dispute_resolution_clauses
 from core.templates.clauses.term_termination import build_term_termination_clauses
 from core.templates.clauses.signatures import build_signatures_block
+from core.templates.clauses.lease_subject import build_lease_subject_clauses, build_lease_terms_clauses
+from core.templates.clauses.license_subject import build_license_subject_clauses
+from core.templates.clauses.freelance_subject import build_freelance_subject_clauses
 
 
 class ContractTypeInfo(BaseModel):
@@ -42,6 +46,9 @@ class ContractRegistry:
         "services": ServiceContract,
         "work": WorkContract,
         "nda": NDAContract,
+        "lease": LeaseContract,
+        "license_sw": LicenseSWContract,
+        "freelance": FreelanceContract,
     }
 
     _metadata: Dict[str, Dict[str, str]] = {
@@ -72,6 +79,27 @@ class ContractRegistry:
             "law_reference": "ФЗ № 98-ФЗ «О коммерческой тайне»",
             "description": "Охрана коммерческой тайны, исходного кода, клиентских баз и штрафы за разглашение.",
             "icon": "shield-check",
+        },
+        "lease": {
+            "title": "Договор аренды имущества / оборудования",
+            "category": "Аренда и недвижимость",
+            "law_reference": "ГК РФ гл. 34 (ст. 606–670)",
+            "description": "Передача оборудования, офисных, складских или производственных помещений во временное пользование с актом приёма-передачи и обеспечительным платежом.",
+            "icon": "key",
+        },
+        "license_sw": {
+            "title": "Лицензионный договор на ПО / SaaS-оферта",
+            "category": "IT и интеллектуальная собственность",
+            "law_reference": "ГК РФ ч. IV, ст. 1235–1238",
+            "description": "Предоставление прав на использование ПО, облачных сервисов, SaaS-платформ с условиями SLA и техподдержки.",
+            "icon": "code-bracket",
+        },
+        "freelance": {
+            "title": "Договор ГПХ с самозанятым / ИП (фриланс)",
+            "category": "Фриланс и самозанятые",
+            "law_reference": "ГК РФ гл. 39, ФЗ № 422-ФЗ",
+            "description": "Договор ГПХ с защитой от переквалификации, чеком НПД (ФЗ 422-ФЗ) и автоматической передачей исключительных прав.",
+            "icon": "user-circle",
         },
     }
 
@@ -125,33 +153,49 @@ class ContractRegistry:
         sections = []
 
         # Section 1: Subject
+        if isinstance(contract, LeaseContract):
+            subject_clauses = build_lease_subject_clauses(contract)
+        elif isinstance(contract, LicenseSWContract):
+            subject_clauses = build_license_subject_clauses(contract)
+        elif isinstance(contract, FreelanceContract):
+            subject_clauses = build_freelance_subject_clauses(contract)
+        else:
+            subject_clauses = build_subject_clauses(contract)
+
         sections.append({
             "section_num": "1",
             "title": "ПРЕДМЕТ ДОГОВОРА",
-            "clauses": build_subject_clauses(contract),
+            "clauses": subject_clauses,
         })
 
         # Section 2: Price & Payments
         sections.append({
             "section_num": "2",
-            "title": "ЦЕНА ДОГОВОРА И ПОРЯДОК РАСЧЕТОВ" if contract_type != "nda" else "ФИНАНСОВЫЕ УСЛОВИЯ",
+            "title": "ЦЕНА ДОГОВОРА И ПОРЯДОК РАСЧЕТОВ" if contract_type not in ("nda",) else "ФИНАНСОВЫЕ УСЛОВИЯ",
             "clauses": build_payment_clauses(contract),
         })
 
         # Section 3: Delivery / Acceptance / Execution
-        if contract_type == "supply":
-            s3_title = "УСЛОВИЯ И СРОКИ ПОСТАВКИ ТОВАРА"
-        elif contract_type == "services":
-            s3_title = "ПОРЯДОК ОКАЗАНИЯ И СДАЧИ-ПРИЕМКИ УСЛУГ"
-        elif contract_type == "work":
-            s3_title = "ПОРЯДОК ВЫПОЛНЕНИЯ И ПРИЕМКИ РАБОТ"
+        s3_titles = {
+            "supply": "УСЛОВИЯ И СРОКИ ПОСТАВКИ ТОВАРА",
+            "services": "ПОРЯДОК ОКАЗАНИЯ И СДАЧИ-ПРИЕМКИ УСЛУГ",
+            "work": "ПОРЯДОК ВЫПОЛНЕНИЯ И ПРИЕМКИ РАБОТ",
+            "lease": "УСЛОВИЯ ПЕРЕДАЧИ, ПОЛЬЗОВАНИЯ И ВОЗВРАТА ИМУЩЕСТВА",
+            "license_sw": "ПОРЯДОК ПРЕДОСТАВЛЕНИЯ ДОСТУПА И ТЕХНИЧЕСКОЙ ПОДДЕРЖКИ",
+            "freelance": "ПОРЯДОК ВЫПОЛНЕНИЯ ЗАДАНИЙ И СДАЧИ-ПРИЕМКИ РЕЗУЛЬТАТОВ",
+        }
+        s3_title = s3_titles.get(contract_type, "ПОРЯДОК ПЕРЕДАЧИ И ОБРАЩЕНИЯ С ИНФОРМАЦИЕЙ")
+
+        # For lease, delivery_acceptance clauses come from lease_terms_clauses
+        if isinstance(contract, LeaseContract):
+            s3_clauses = build_lease_terms_clauses(contract)
         else:
-            s3_title = "ПОРЯДОК ПЕРЕДАЧИ И ОБРАЩЕНИЯ С ИНФОРМАЦИЕЙ"
+            s3_clauses = build_delivery_acceptance_clauses(contract)
 
         sections.append({
             "section_num": "3",
             "title": s3_title,
-            "clauses": build_delivery_acceptance_clauses(contract),
+            "clauses": s3_clauses,
         })
 
         # Section 4: Liability
@@ -348,6 +392,120 @@ class ContractRegistry:
                     is_bilateral=True,
                     confidentiality_years=3,
                     disclosure_penalty_rubles=500000.0,
+                ),
+            )
+
+        elif contract_type == "lease":
+            return LeaseContract(
+                metadata=ContractMetadata(
+                    contract_number="2025/А-07",
+                    contract_date="2025-03-01",
+                    city="г. Москва",
+                    valid_until="до 28 февраля 2026 года",
+                ),
+                client=client,
+                vendor=vendor,
+                vat_rate=20,
+                vat_included=True,
+                lease_object=LeaseObject(
+                    name="Сервер HPE ProLiant DL380 Gen10 (2x Xeon Gold 6230, 256GB RAM, 10TB NVMe)",
+                    inventory_number="ИНВ-00128",
+                    location="117342, г. Москва, ул. Бутлерова, д. 17, серверная комната 2Б",
+                    condition="исправное, полностью работоспособное, соответствующее паспортным характеристикам",
+                    market_value_rubles=850000.0,
+                ),
+                lease_terms=LeaseTerms(
+                    rent_period_months=12,
+                    monthly_rent_rubles=25000.0,
+                    security_deposit_months=2.0,
+                    utilities_by_tenant=True,
+                    sublease_allowed=False,
+                ),
+            )
+
+        elif contract_type == "license_sw":
+            return LicenseSWContract(
+                metadata=ContractMetadata(
+                    contract_number="2025/Л-03",
+                    contract_date="2025-04-01",
+                    city="г. Москва",
+                    valid_until="до 31 марта 2026 года",
+                ),
+                client=client,
+                vendor=vendor,
+                vat_rate=0,
+                is_exempt_vat=True,
+                license_fee=180000.0,
+                fee_type="единовременно",
+                software=[
+                    SoftwareDeliverable(
+                        name="DocGen Enterprise Platform",
+                        version="2.0",
+                        registration_number="2025611234",
+                        delivery_method="облачный доступ (SaaS)",
+                    ),
+                ],
+                license_terms=LicenseTerms(
+                    license_type=LicenseType.SIMPLE,
+                    territory="Российская Федерация",
+                    period_months=12,
+                    allowed_users=50,
+                    source_code_included=False,
+                    modification_allowed=False,
+                    sla_uptime_percent=99.5,
+                    support_included=True,
+                    support_response_hours=8,
+                ),
+            )
+
+        elif contract_type == "freelance":
+            return FreelanceContract(
+                metadata=ContractMetadata(
+                    contract_number="2025/ГПХ-12",
+                    contract_date="2025-05-01",
+                    city="г. Москва",
+                    valid_until="до 31 мая 2025 года",
+                ),
+                client=client,
+                vendor=Party(
+                    party_type=PartyType.SELF_EMPLOYED,
+                    full_name="Петров Иван Сергеевич",
+                    short_name="Петров И.С.",
+                    inn="770708389324",  # Valid 12-digit individual INN
+                    legal_address="г. Москва, ул. Тверская, д. 1, кв. 10",
+                    signatory_position="Самозанятый",
+                    signatory_name="Петров Иван Сергеевич",
+                    signatory_basis="лично",
+                    bank_requisites=BankRequisites(
+                        bik="044525225",
+                        bank_name="ПАО СБЕРБАНК г. Москва",
+                        account="40817810938000012346",
+                        corr_account="30101810400000000225",
+                    ),
+                    email="ivan.petrov@gmail.com",
+                ),
+                vat_rate=0,
+                is_exempt_vat=True,
+                tasks=[
+                    FreelanceTask(
+                        name="Разработка REST API на FastAPI (10 эндпоинтов)",
+                        description="Проектирование и реализация OpenAPI-совместимого бэкенда с тестами",
+                        cost=80000.0,
+                        deadline_days=14,
+                    ),
+                    FreelanceTask(
+                        name="Написание технической документации (Swagger + README)",
+                        description="Оформление документации по ГОСТ 19.505-79",
+                        cost=20000.0,
+                        deadline_days=5,
+                    ),
+                ],
+                freelance_terms=FreelanceTerms(
+                    is_self_employed=True,
+                    check_receipt_required=True,
+                    ip_rights_transfer=True,
+                    no_employment_relations=True,
+                    act_review_days=3,
                 ),
             )
 

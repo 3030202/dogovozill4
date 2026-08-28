@@ -17,7 +17,9 @@ def test_get_contract_types():
     response = client.get("/api/contracts/types")
     assert response.status_code == 200
     types = response.json()
-    assert len(types) == 4
+    assert len(types) == 7  # supply, services, work, nda, lease, license_sw, freelance
+    keys = {t["key"] for t in types}
+    assert keys == {"supply", "services", "work", "nda", "lease", "license_sw", "freelance"}
     keys = [t["key"] for t in types]
     assert "supply" in keys
     assert "services" in keys

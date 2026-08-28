@@ -5,14 +5,12 @@ import pytest
 from core.templates.registry import ContractRegistry
 from core.rendering.docx_engine import DocxEngine
 from core.rendering.typst_engine import TypstEngine
-from core.models.supply import SupplyContract
-from core.models.services import ServiceContract
-from core.models.work import WorkContract
-from core.models.nda import NDAContract
+
+ALL_CONTRACT_TYPES = ["supply", "services", "work", "nda", "lease", "license_sw", "freelance"]
 
 
 class TestRenderingEngines:
-    @pytest.mark.parametrize("contract_type", ["supply", "services", "work", "nda"])
+    @pytest.mark.parametrize("contract_type", ALL_CONTRACT_TYPES)
     def test_docx_generation(self, contract_type):
         sample = ContractRegistry.get_sample_contract(contract_type)
         buf = DocxEngine.generate(sample)
@@ -22,7 +20,7 @@ class TestRenderingEngines:
         assert content.startswith(b"PK\x03\x04")
         assert len(content) > 10000
 
-    @pytest.mark.parametrize("contract_type", ["supply", "services", "work", "nda"])
+    @pytest.mark.parametrize("contract_type", ALL_CONTRACT_TYPES)
     def test_typst_markup_generation(self, contract_type):
         sample = ContractRegistry.get_sample_contract(contract_type)
         markup = TypstEngine.generate_typst_markup(sample)

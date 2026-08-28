@@ -1,4 +1,4 @@
-"""Delivery and Acceptance Clauses (ГК РФ)."""
+"""Delivery and Acceptance Clauses (ГК РФ) — with LegalStance support."""
 
 from __future__ import annotations
 from typing import List, Dict, Any
@@ -6,6 +6,7 @@ from core.models.supply import SupplyContract
 from core.models.services import ServiceContract
 from core.models.work import WorkContract
 from core.models.nda import NDAContract
+from core.models.stance import LegalStance
 
 
 def build_delivery_acceptance_clauses(contract: Any) -> List[Dict[str, str]]:
@@ -45,17 +46,26 @@ def build_delivery_acceptance_clauses(contract: Any) -> List[Dict[str, str]]:
                 "в 2 (двух) экземплярах либо через систему юридически значимого электронного документооборота (ЭДО)."
             )
         })
+        # Срок молчаливой приемки зависит от правовой позиции
+        stance = contract.legal_stance
+        if stance == LegalStance.PRO_VENDOR:
+            silent_days = 3
+        elif stance == LegalStance.PRO_BUYER:
+            silent_days = 7
+        else:
+            silent_days = terms.act_review_days
+
         clauses.append({
             "num": "3.2",
             "text": (
-                f"Заказчик обязан в течение {terms.act_review_days} рабочих дней со дня получения Акта подписать его и направить один экземпляр "
+                f"Заказчик обязан в течение {silent_days} рабочих дней со дня получения Акта подписать его и направить один экземпляр "
                 "Исполнителю либо представить мотивированный письменный отказ от приемки с указанием перечня необходимых доработок."
             )
         })
         clauses.append({
             "num": "3.3",
             "text": (
-                f"В случае если в течение {terms.act_review_days} рабочих дней Заказчик не направил подписанный Акт или мотивированный отказ, "
+                f"В случае если в течение {silent_days} рабочих дней Заказчик не направил подписанный Акт или мотивированный отказ, "
                 "услуги считаются оказанными в полном объеме, с надлежащим качеством и принятыми Заказчиком без замечаний."
             )
         })

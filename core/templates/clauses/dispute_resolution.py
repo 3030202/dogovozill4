@@ -1,21 +1,35 @@
-"""Dispute Resolution and Jurisdiction Clauses (ГК РФ, АПК РФ)."""
+"""Dispute Resolution and Jurisdiction Clauses (ГК РФ, АПК РФ) — with LegalStance support."""
 
 from __future__ import annotations
 from typing import List, Dict, Any
 from core.models.base import BaseContract
+from core.models.stance import LegalStance
 
 
 def build_dispute_resolution_clauses(contract: BaseContract) -> List[Dict[str, str]]:
-    """Generate Section: Порядок разрешения споров."""
+    """Generate Section: Порядок разрешения споров с учетом правовой позиции."""
     disp = contract.dispute_resolution
+    stance = contract.legal_stance
 
-    jurisdiction_texts = {
+    # Выбор суда по умолчанию из поля dispute_resolution
+    explicit_map = {
         "arbitration_plaintiff": "в Арбитражном суде по месту нахождения Истца",
         "arbitration_defendant": "в Арбитражном суде по месту нахождения Ответчика",
         "moscow": "в Арбитражном суде города Москвы",
-        "general": "в суде общей юрисдикции по месту нахождения Ответчика"
+        "general": "в суде общей юрисдикции по месту нахождения Ответчика",
     }
-    court_text = jurisdiction_texts.get(disp.court_jurisdiction, "в Арбитражном суде по месту нахождения Истца")
+
+    # Если пользователь явно задал нестандартную подсудность — уважаем её
+    if disp.court_jurisdiction in ("moscow", "general"):
+        court_text = explicit_map[disp.court_jurisdiction]
+    else:
+        # Stance override для arbitration случаев
+        if stance == LegalStance.PRO_BUYER:
+            court_text = "в Арбитражном суде по месту нахождения Заказчика"
+        elif stance == LegalStance.PRO_VENDOR:
+            court_text = "в Арбитражном суде по месту нахождения Исполнителя / Поставщика"
+        else:  # BALANCED — по месту Истца (нейтрально)
+            court_text = explicit_map.get(disp.court_jurisdiction, "в Арбитражном суде по месту нахождения Истца")
 
     return [
         {

@@ -5,6 +5,7 @@ from enum import Enum
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from core.validator import validate_inn, validate_kpp, validate_ogrn, validate_bik, validate_bank_account
+from core.models.stance import LegalStance
 
 
 class PartyType(str, Enum):
@@ -115,4 +116,8 @@ class BaseContract(BaseModel):
     vat_rate: int = Field(20, description="Ставка НДС (20, 10, 0)")
     vat_included: bool = Field(True, description="НДС включен в цену")
     is_exempt_vat: bool = Field(False, description="Освобожден от НДС (УСН / ст. 346.11 НК РФ)")
+    legal_stance: LegalStance = Field(
+        LegalStance.BALANCED,
+        description="Юридическая позиция: PRO_BUYER (защита Заказчика), BALANCED (нейтрально), PRO_VENDOR (защита Исполнителя)"
+    )
     additional_terms: Optional[str] = Field(None, description="Дополнительные особые условия")
