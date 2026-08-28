@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Building2, UserCheck, Search, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Building2, UserCheck, Search, CheckCircle2, AlertCircle, RefreshCw, Zap } from 'lucide-react';
 import { suggestPartyByInn, validatePartyRequisites } from '../api/client';
 
 export default function PartyCard({
@@ -9,8 +9,11 @@ export default function PartyCard({
   onChange,
 }) {
   const [loadingSuggest, setLoadingSuggest] = useState(false);
+  const [suggestResult, setSuggestResult] = useState(null); // 'found' | 'not_found' | 'no_key' | null
   const [validationReport, setValidationReport] = useState(null);
+  const innDebounceRef = useRef(null);
 
+  // Debounce validation on any party change
   useEffect(() => {
     let active = true;
     const timer = setTimeout(async () => {
@@ -45,14 +48,27 @@ export default function PartyCard({
     });
   };
 
-  const handleSuggest = async () => {
-    if (!party.inn || party.inn.length < 10) return;
+  // Auto-suggest when INN reaches valid length (10 or 12 digits)
+  const handleInnChange = (value) => {
+    handleFieldChange('inn', value);
+    clearTimeout(innDebounceRef.current);
+    const clean = value.replace(/\D/g, '');
+    if (clean.length === 10 || clean.length === 12) {
+      innDebounceRef.current = setTimeout(() => autoSuggest(clean), 600);
+    } else {
+      setSuggestResult(null);
+    }
+  };
+
+  const autoSuggest = async (inn) => {
     setLoadingSuggest(true);
+    setSuggestResult(null);
     try {
-      const result = await suggestPartyByInn(party.inn);
+      const result = await suggestPartyByInn(inn);
       if (result.found) {
         onChange({
           ...party,
+          inn,
           full_name: result.full_name || party.full_name,
           short_name: result.short_name || party.short_name,
           kpp: result.kpp || party.kpp,
@@ -61,12 +77,23 @@ export default function PartyCard({
           signatory_position: result.signatory_position || party.signatory_position,
           signatory_name: result.signatory_name || party.signatory_name,
         });
+        setSuggestResult('found');
+        setTimeout(() => setSuggestResult(null), 4000);
+      } else if (result.valid_inn && !result.found) {
+        setSuggestResult(result.error ? 'error' : 'no_key');
+        setTimeout(() => setSuggestResult(null), 3000);
       }
     } catch (e) {
-      console.error(e);
+      setSuggestResult('error');
+      setTimeout(() => setSuggestResult(null), 3000);
     } finally {
       setLoadingSuggest(false);
     }
+  };
+
+  const handleSuggest = async () => {
+    if (!party.inn || party.inn.replace(/\D/g, '').length < 10) return;
+    await autoSuggest(party.inn.replace(/\D/g, ''));
   };
 
   const bank = party.bank_requisites || {};
@@ -98,6 +125,26 @@ export default function PartyCard({
           )}
         </div>
       </div>
+
+      {/* DaData suggest result banner */}
+      {suggestResult === 'found' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: 'var(--radius-md)', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', fontSize: '12px', color: '#6ee7b7', animation: 'fadeIn 0.3s ease' }}>
+          <Zap size={14} />
+          <span><b>DaData:</b> реквизиты организации автоматически заполнены</span>
+        </div>
+      )}
+      {suggestResult === 'no_key' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: 'var(--radius-md)', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', fontSize: '12px', color: '#fcd34d' }}>
+          <Zap size={14} />
+          <span>ИНН корректен. Для автозаполнения задайте <b>DADATA_API_KEY</b></span>
+        </div>
+      )}
+      {suggestResult === 'error' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: 'var(--radius-md)', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', fontSize: '12px', color: '#fca5a5' }}>
+          <AlertCircle size={14} />
+          <span>Ошибка подключения к DaData</span>
+        </div>
+      )}
 
       {/* Form Fields */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -142,7 +189,7 @@ export default function PartyCard({
               type="text"
               className={`form-input ${validationReport && !validationReport?.details?.inn?.valid ? 'is-invalid' : ''}`}
               value={party.inn || ''}
-              onChange={(e) => handleFieldChange('inn', e.target.value)}
+              onChange={(e) => handleInnChange(e.target.value)}
               placeholder="7707083893"
             />
             <button
@@ -151,9 +198,9 @@ export default function PartyCard({
               onClick={handleSuggest}
               disabled={loadingSuggest || !party.inn}
               title="Заполнить по ИНН через DaData"
-              style={{ padding: '8px 12px' }}
+              style={{ padding: '8px 12px', position: 'relative' }}
             >
-              {loadingSuggest ? <RefreshCw size={14} className="spin" /> : <Search size={14} />}
+              {loadingSuggest ? <RefreshCw size={14} className="spin" /> : <Zap size={14} />}
             </button>
           </div>
           {validationReport?.errors?.inn && (

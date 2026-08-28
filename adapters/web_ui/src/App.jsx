@@ -16,6 +16,10 @@ import {
   CreditCard,
   Scale,
   Sparkles,
+  KeyRound,
+  Monitor,
+  UserCheck,
+  ShieldAlert,
 } from 'lucide-react';
 
 import Header from './components/Header';
@@ -39,6 +43,7 @@ export default function App() {
   const [selectedType, setSelectedType] = useState('supply');
   const [contractData, setContractData] = useState(null);
   const [activeTab, setActiveTab] = useState('parties');
+  const [legalStance, setLegalStance] = useState('balanced');
 
   const [calcResult, setCalcResult] = useState(null);
   const [isDownloadingDocx, setIsDownloadingDocx] = useState(false);
@@ -100,6 +105,13 @@ export default function App() {
       total = contractData.services.reduce((sum, s) => sum + (parseFloat(s.price) || 0), 0);
     } else if (selectedType === 'work' && contractData.stages) {
       total = contractData.stages.reduce((sum, st) => sum + (parseFloat(st.cost) || 0), 0);
+    } else if (selectedType === 'lease' && contractData.lease_terms) {
+      const lt = contractData.lease_terms;
+      total = (parseFloat(lt.monthly_rent_rubles) || 0) * (parseInt(lt.rent_period_months) || 1);
+    } else if (selectedType === 'license_sw') {
+      total = parseFloat(contractData.license_fee) || 0;
+    } else if (selectedType === 'freelance' && contractData.tasks) {
+      total = contractData.tasks.reduce((sum, t) => sum + (parseFloat(t.cost) || 0), 0);
     }
 
     const pay = contractData.payment_terms || {};
@@ -215,9 +227,23 @@ export default function App() {
         return <Hammer size={18} />;
       case 'nda':
         return <ShieldCheck size={18} />;
+      case 'lease':
+        return <KeyRound size={18} />;
+      case 'license_sw':
+        return <Monitor size={18} />;
+      case 'freelance':
+        return <UserCheck size={18} />;
       default:
         return <FileText size={18} />;
     }
+  };
+
+  const handleStanceChange = (stance) => {
+    setLegalStance(stance);
+    setContractData((prev) => ({
+      ...prev,
+      legal_stance: stance,
+    }));
   };
 
   if (!contractData) {
@@ -600,8 +626,45 @@ export default function App() {
               </div>
             )}
 
+            {/* Stance Selector */}
+            <div style={{ marginTop: '20px', borderTop: '1px solid var(--border-glass)', paddingTop: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                <Scale size={16} color="var(--accent-amber)" />
+                <span style={{ fontSize: '13px', fontWeight: 700 }}>Юридическая позиция</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' }}>
+                {[
+                  { key: 'pro_buyer', label: 'Pro-Заказчик', color: '#3b82f6', desc: 'Жёсткие пени, быстрый отказ' },
+                  { key: 'balanced', label: 'Нейтральный', color: '#8b5cf6', desc: 'Сбалансированные условия' },
+                  { key: 'pro_vendor', label: 'Pro-Исполнитель', color: '#10b981', desc: 'Мягкие пени, защита ИП' },
+                ].map((s) => (
+                  <button
+                    key={s.key}
+                    type="button"
+                    onClick={() => handleStanceChange(s.key)}
+                    style={{
+                      padding: '8px 4px',
+                      borderRadius: 'var(--radius-md)',
+                      border: `2px solid ${legalStance === s.key ? s.color : 'var(--border-glass)'}`,
+                      background: legalStance === s.key ? `${s.color}22` : 'transparent',
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    <div style={{ fontSize: '11px', fontWeight: 700, color: legalStance === s.key ? s.color : 'var(--text-main)' }}>
+                      {s.label}
+                    </div>
+                    <div style={{ fontSize: '9px', color: 'var(--text-dim)', marginTop: '2px' }}>
+                      {s.desc}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Action Buttons */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '20px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '16px' }}>
               <button
                 type="button"
                 className="btn btn-primary"
@@ -621,7 +684,7 @@ export default function App() {
                 style={{ width: '100%', padding: '12px' }}
               >
                 <FileCode size={16} />
-                <span>{isDownloadingPdf ? 'Компиляция PDF...' : 'Скачать PDF (Typst)'}</span>
+                <span>{isDownloadingPdf ? 'Компиляция PDF...' : 'Скачать PDF (ReportLab)'}</span>
               </button>
 
               <button
