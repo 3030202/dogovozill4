@@ -53,7 +53,8 @@ def health_check():
 def start():
     """CLI launcher for uvicorn server."""
     import uvicorn
-    uvicorn.run("adapters.api.server:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.environ.get("PORT", 8001))
+    uvicorn.run("adapters.api.server:app", host="0.0.0.0", port=port, reload=True)
 
 
 if __name__ == "__main__":

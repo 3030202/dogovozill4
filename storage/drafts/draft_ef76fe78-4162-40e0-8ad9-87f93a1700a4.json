@@ -1,0 +1,94 @@
+{
+  "id": "ef76fe78-4162-40e0-8ad9-87f93a1700a4",
+  "title": "Договор NDA № 2025/П-01",
+  "contract_type": "nda",
+  "data": {
+    "metadata": {
+      "contract_number": "2025/П-01",
+      "contract_date": "2025-02-15",
+      "city": "г. Москва",
+      "valid_until": "до 31 декабря 2025 года"
+    },
+    "client": {
+      "party_type": "OOO",
+      "full_name": "ООО «АЛЬФА ТЕХНОЛОДЖИС»",
+      "short_name": "ООО «Альфа»",
+      "inn": "7707083893",
+      "kpp": "770701001",
+      "ogrn": "1027700132195",
+      "legal_address": "119049, г. Москва, ул. Шаболовка, д. 10, корп. 2, оф. 401",
+      "actual_address": "119049, г. Москва, ул. Шаболовка, д. 10, корп. 2, оф. 401",
+      "signatory_position": "Генеральный директор",
+      "signatory_name": "Алексеев Алексей Алексеевич",
+      "signatory_basis": "Устава",
+      "bank_requisites": {
+        "bik": "044525225",
+        "bank_name": "ПАО СБЕРБАНК г. Москва",
+        "account": "40702810938000012345",
+        "corr_account": "30101810400000000225"
+      },
+      "phone": "+7 (495) 123-45-67",
+      "email": "info@alpha-tech.ru"
+    },
+    "vendor": {
+      "party_type": "OOO",
+      "full_name": "ООО «ВЕКТОР РЕШЕНИЙ»",
+      "short_name": "ООО «Вектор»",
+      "inn": "7728168971",
+      "kpp": "772801001",
+      "ogrn": "1027739062860",
+      "legal_address": "117342, г. Москва, ул. Бутлерова, д. 17, оф. 512",
+      "actual_address": "117342, г. Москва, ул. Бутлерова, д. 17, оф. 512",
+      "signatory_position": "Генеральный директор",
+      "signatory_name": "Смирнов Сергей Сергеевич",
+      "signatory_basis": "Устава",
+      "bank_requisites": {
+        "bik": "044525593",
+        "bank_name": "АО «АЛЬФА-БАНК» г. Москва",
+        "account": "40702810401400005678",
+        "corr_account": "30101810200000000593"
+      },
+      "phone": "+7 (495) 987-65-43",
+      "email": "sales@vector-solutions.ru"
+    },
+    "payment_terms": {
+      "type": "100_POSTPAYMENT",
+      "advance_percent": 0,
+      "postpayment_days": 5,
+      "days_type": "banking",
+      "description": null
+    },
+    "penalty_terms": {
+      "penalty_rate_daily": 0.1,
+      "max_penalty_percent": 10,
+      "use_cbr_key_rate": false,
+      "fine_fixed_amount": 0
+    },
+    "dispute_resolution": {
+      "pre_trial_claim_days": 30,
+      "court_jurisdiction": "arbitration_plaintiff"
+    },
+    "vat_rate": 20,
+    "vat_included": true,
+    "is_exempt_vat": false,
+    "additional_terms": null,
+    "contract_type": "nda",
+    "scope": {
+      "purpose": "Обсуждение и разработка совместной архитектуры программного обеспечения",
+      "confidential_scope": [
+        "Техническая и технологическая информация (исходные коды, архитектура, спецификации)",
+        "Коммерческая и финансовая информация (бизнес-планы, цены, условия договоров, клиенты)",
+        "Организационная и кадровая структура, персональные данные сотрудников",
+        "Любая иная информация с грифом 'Коммерческая тайна' или 'Конфиденциально'"
+      ],
+      "marking_required": false
+    },
+    "nda_terms": {
+      "is_bilateral": true,
+      "confidentiality_years": 3,
+      "disclosure_penalty_rubles": 500000
+    }
+  },
+  "created_at": 1787901612.1655066,
+  "updated_at": 1787901612.1655066
+}
