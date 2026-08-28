@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 from typing import List, Optional
-from pydantic import Field, computed_field
+from pydantic import BaseModel, Field, ConfigDict, computed_field
 from core.models.base import BaseContract
 
 
-class WorkStage(BaseContract.model_config):
+class WorkStage(BaseModel):
     """Stage in contractor work plan."""
+    model_config = ConfigDict(extra="ignore")
+
     stage_number: int = Field(..., ge=1, description="Номер этапа")
     title: str = Field(..., description="Наименование этапа работ")
     start_date: str = Field(..., description="Дата начала этапа")
@@ -16,8 +18,9 @@ class WorkStage(BaseContract.model_config):
     deliverable_result: Optional[str] = Field(None, description="Овеществленный результат этапа работ")
 
 
-class WorkTerms(BaseContract.model_config):
+class WorkTerms(BaseModel):
     """Terms for work execution, warranty and acceptance."""
+    model_config = ConfigDict(extra="ignore")
     materials_by_contractor: bool = Field(True, description="Работы выполняются иждивением подрядчика (из его материалов)")
     warranty_months: int = Field(12, ge=0, description="Гарантийный срок на результат работ (месяцев)")
     acceptance_days: int = Field(5, ge=1, description="Срок приемки выполненных работ по Акту КС-2 / Акту приемки (дней)")

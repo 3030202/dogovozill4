@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 from typing import List, Optional
-from pydantic import Field, ConfigDict, computed_field
+from pydantic import BaseModel, Field, ConfigDict, computed_field
 from core.models.base import BaseContract
 
 
-class SupplyItem(BaseContract.model_config):
+class SupplyItem(BaseModel):
     """Specification item for supply goods."""
+    model_config = ConfigDict(extra="ignore")
+
     name: str = Field(..., description="Наименование товара / артикул")
     unit: str = Field("шт.", description="Единица измерения (шт., компл., кг, м2 и т.д.)")
     quantity: float = Field(..., gt=0, description="Количество")
@@ -18,8 +20,9 @@ class SupplyItem(BaseContract.model_config):
         return round(self.quantity * self.price_per_unit, 2)
 
 
-class DeliveryTerms(BaseContract.model_config):
+class DeliveryTerms(BaseModel):
     """Delivery terms and acceptance protocol."""
+    model_config = ConfigDict(extra="ignore")
     method: str = Field(
         "vendor_delivery",
         description="vendor_delivery (доставка силами поставщика) / pickup (самовывоз) / carrier (транспортная компания)"

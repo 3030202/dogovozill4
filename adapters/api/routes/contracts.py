@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 import io
+from urllib.parse import quote
 from typing import Dict, Any, List, Optional
 from fastapi import APIRouter, HTTPException, Response
 from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 from core.templates.registry import ContractRegistry, ContractTypeInfo
-from core.validator import validate_party_requisites, validate_inn, validate_bik
+from core.validator import validate_party_requisites, validate_inn, validate_bik, suggest_party_by_inn
 from core.rendering.docx_engine import DocxEngine
 from core.rendering.typst_engine import TypstEngine
 from core.rendering.libreoffice_engine import LibreOfficeEngine
@@ -54,6 +55,12 @@ def get_sample_contract(contract_type: str):
         return sample.model_dump()
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/suggest/{inn}")
+def suggest_party(inn: str):
+    """Enrich party requisites by INN via DaData or return mathematical validation status."""
+    return suggest_party_by_inn(inn)
 
 
 @router.post("/validate-party")
@@ -126,11 +133,12 @@ def generate_docx(payload: ContractPayload):
         contract = ContractRegistry.parse_contract(payload.contract_type, payload.data)
         buffer = DocxEngine.generate(contract)
         filename = f"Contract_{payload.contract_type}_{contract.metadata.contract_number.replace('/', '_')}.docx"
+        encoded_filename = quote(filename)
 
         return StreamingResponse(
             buffer,
             media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+            headers={"Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"}
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Ошибка генерации DOCX: {str(e)}")
@@ -158,10 +166,11 @@ def generate_pdf(payload: ContractPayload):
         # Check if bytes start with %PDF
         if pdf_bytes.startswith(b"%PDF"):
             filename = f"Contract_{payload.contract_type}_{contract.metadata.contract_number.replace('/', '_')}.pdf"
+            encoded_filename = quote(filename)
             return StreamingResponse(
                 io.BytesIO(pdf_bytes),
                 media_type="application/pdf",
-                headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+                headers={"Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"}
             )
 
         # Fallback to LibreOffice if available
@@ -169,18 +178,20 @@ def generate_pdf(payload: ContractPayload):
         lo_pdf = LibreOfficeEngine.convert_docx_to_pdf(docx_buf.getvalue())
         if lo_pdf and lo_pdf.startswith(b"%PDF"):
             filename = f"Contract_{payload.contract_type}_{contract.metadata.contract_number.replace('/', '_')}.pdf"
+            encoded_filename = quote(filename)
             return StreamingResponse(
                 io.BytesIO(lo_pdf),
                 media_type="application/pdf",
-                headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+                headers={"Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"}
             )
 
         # If PDF compiler not found, return Typst source code file with clear instructions
         filename = f"Contract_{payload.contract_type}_{contract.metadata.contract_number.replace('/', '_')}.typ"
+        encoded_filename = quote(filename)
         return StreamingResponse(
             io.BytesIO(pdf_bytes),
             media_type="text/plain",
-            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+            headers={"Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"}
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Ошибка генерации PDF: {str(e)}")

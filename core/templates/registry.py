@@ -227,7 +227,7 @@ class ContractRegistry:
             bank_requisites=BankRequisites(
                 bik="044525225",
                 bank_name="ПАО СБЕРБАНК г. Москва",
-                account="40702810438000012345",
+                account="40702810938000012345",
                 corr_account="30101810400000000225",
             ),
             phone="+7 (495) 123-45-67",
@@ -249,7 +249,7 @@ class ContractRegistry:
             bank_requisites=BankRequisites(
                 bik="044525593",
                 bank_name="АО «АЛЬФА-БАНК» г. Москва",
-                account="40702810901400005678",
+                account="40702810401400005678",
                 corr_account="30101810200000000593",
             ),
             phone="+7 (495) 987-65-43",

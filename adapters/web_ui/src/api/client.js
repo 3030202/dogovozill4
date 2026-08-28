@@ -26,6 +26,12 @@ export async function validatePartyRequisites(partyData) {
   return res.json();
 }
 
+export async function suggestPartyByInn(inn) {
+  const res = await fetch(`${API_BASE}/contracts/suggest/${encodeURIComponent(inn)}`);
+  if (!res.ok) return { found: false, valid_inn: false };
+  return res.json();
+}
+
 export async function validateFullContract(contractType, data) {
   const res = await fetch(`${API_BASE}/contracts/validate`, {
     method: 'POST',

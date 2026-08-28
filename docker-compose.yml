@@ -1,0 +1,40 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: docgen_api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DADATA_API_KEY=${DADATA_API_KEY:-}
+    volumes:
+      - docgen_drafts:/app/storage/drafts
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: docgen_web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: docgen_bot
+    restart: unless-stopped
+    command: ["python", "-m", "adapters.telegram_bot.bot"]
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - DADATA_API_KEY=${DADATA_API_KEY:-}
+    depends_on:
+      - api
+
+volumes:
+  docgen_drafts:

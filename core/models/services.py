@@ -2,20 +2,23 @@
 
 from __future__ import annotations
 from typing import List, Optional
-from pydantic import Field, computed_field
+from pydantic import BaseModel, Field, ConfigDict, computed_field
 from core.models.base import BaseContract
 
 
-class ServiceItem(BaseContract.model_config):
+class ServiceItem(BaseModel):
     """Specific service definition or deliverable."""
+    model_config = ConfigDict(extra="ignore")
+
     name: str = Field(..., description="Наименование услуги")
     description: Optional[str] = Field(None, description="Состав и описание оказываемых услуг")
     price: float = Field(..., gt=0, description="Стоимость услуги (руб.)")
     period_or_deadline: Optional[str] = Field(None, description="Срок или периодичность оказания")
 
 
-class ServiceTerms(BaseContract.model_config):
+class ServiceTerms(BaseModel):
     """Terms and condition for service execution and acceptance."""
+    model_config = ConfigDict(extra="ignore")
     service_start_date: str = Field(..., description="Дата начала оказания услуг")
     service_end_date: str = Field(..., description="Дата окончания оказания услуг")
     act_review_days: int = Field(5, ge=1, description="Срок подписания Акта оказанных услуг или направления мотивированного отказа (дней)")

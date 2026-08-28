@@ -148,7 +148,7 @@ def validate_bank_account(account: str | int | None, bik: str | int | None) -> T
     combined = bik_slice + acc_str
     weights = [7, 1, 3, 7, 1, 3, 7, 1, 3, 7, 1, 3, 7, 1, 3, 7, 1, 3, 7, 1, 3, 7, 1]
 
-    total = sum(int(digit) * weight for digit, weight in zip(combined, weights))
+    total = sum((int(digit) * weight) % 10 for digit, weight in zip(combined, weights))
     if total % 10 == 0:
         return True, "Номер банковского счета корректен и привязан к БИК"
     return False, "Неверная контрольная сумма банковского счета для данного БИК"
@@ -214,3 +214,61 @@ def validate_party_requisites(party_data: Dict[str, Any]) -> Dict[str, Any]:
             results["errors"]["corr_account"] = corr_msg
 
     return results
+
+
+def suggest_party_by_inn(inn: str | int | None, api_key: str | None = None) -> Dict[str, Any]:
+    """Optional online enrichment via DaData API.
+
+    Returns suggested party information if api_key is available, or mathematical validation status.
+    """
+    import os
+    if not inn:
+        return {"found": False, "valid_inn": False, "message": "ИНН не задан"}
+
+    inn_str = str(inn).strip()
+    is_valid, msg = validate_inn(inn_str)
+    if not is_valid:
+        return {"found": False, "valid_inn": False, "message": msg}
+
+    if not api_key:
+        api_key = os.environ.get("DADATA_API_KEY")
+
+    if not api_key:
+        return {
+            "found": False,
+            "valid_inn": True,
+            "message": "Контрольная сумма ИНН корректна (для автозаполнения задайте DADATA_API_KEY).",
+        }
+
+    try:
+        import httpx
+        url = "https://suggestions.dadata.ru/suggestions/api/4_1/rs/findById/party"
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Authorization": f"Token {api_key}",
+        }
+        data = {"query": inn_str, "count": 1}
+        resp = httpx.post(url, json=data, headers=headers, timeout=5.0)
+        if resp.status_code == 200:
+            res_json = resp.json()
+            suggestions = res_json.get("suggestions", [])
+            if suggestions:
+                sug = suggestions[0]
+                d = sug.get("data", {})
+                return {
+                    "found": True,
+                    "valid_inn": True,
+                    "full_name": sug.get("value") or d.get("name", {}).get("full_with_opf") or "",
+                    "short_name": d.get("name", {}).get("short_with_opf") or "",
+                    "inn": d.get("inn") or inn_str,
+                    "kpp": d.get("kpp") or "",
+                    "ogrn": d.get("ogrn") or "",
+                    "legal_address": d.get("address", {}).get("value") or "",
+                    "signatory_position": d.get("management", {}).get("post", "Генеральный директор") or "Генеральный директор",
+                    "signatory_name": d.get("management", {}).get("name", "") or "",
+                }
+    except Exception as e:
+        return {"found": False, "valid_inn": True, "error": str(e)}
+
+    return {"found": False, "valid_inn": True, "message": "Организация по ИНН не найдена в базе"}
