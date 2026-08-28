@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "mcp-server-filesystem-git": {
+      "command": "python3",
+      "args": ["-m", "core.mcp.filesystem_git_server"],
+      "description": "Read/write source code, version control templates and export artifacts"
+    },
+    "mcp-server-typst-compiler": {
+      "command": "python3",
+      "args": ["-m", "core.mcp.typst_compiler_server"],
+      "description": "Invoke Typst for vector PDF rendering in 15-30ms without LibreOffice overhead"
+    },
+    "mcp-server-legal-validator": {
+      "command": "python3",
+      "args": ["-m", "core.mcp.legal_validator_server"],
+      "description": "Algorithmic validation of Russian bank details (INN 10/12, OGRN, BIK, Account key digit)"
+    },
+    "mcp-server-windows-packager": {
+      "command": "python3",
+      "args": ["-m", "core.mcp.windows_packager_server"],
+      "description": "Packaging and testing standalone Windows .exe distribution via PyInstaller"
+    }
+  }
+}

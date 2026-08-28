@@ -1,0 +1,29 @@
+{
+  "agents": [
+    {
+      "name": "System Architect Agent",
+      "role": "system_architect",
+      "description": "Designs contracts and boundaries between core/, api/ and omnichannel clients. Ensures strict isolation of business logic from platform libraries."
+    },
+    {
+      "name": "Legal-Tech Engineer Agent",
+      "role": "legal_tech_engineer",
+      "description": "Constructs parametric legal clauses and validation rules according to the Civil Code of the Russian Federation (supply, services, work, NDA)."
+    },
+    {
+      "name": "Typography & Render Agent",
+      "role": "typography_render_agent",
+      "description": "Configures docx_engine and typst_engine for GOST typography, pixel-accurate tables, headers, and payment schedules."
+    },
+    {
+      "name": "Client Adapters Engineer Agent",
+      "role": "client_adapters_engineer",
+      "description": "Implements Telegram Bot (aiogram 3), Desktop (PySide6/Tkinter) and Web SPA (React) client adapters using the unified Core API."
+    },
+    {
+      "name": "QA & Packaging Agent",
+      "role": "qa_packaging_agent",
+      "description": "Executes stress tests for document assembly with edge-case payloads and automates standalone Windows .exe and container builds."
+    }
+  ]
+}
