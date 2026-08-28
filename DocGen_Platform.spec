@@ -2,10 +2,10 @@
 
 
 a = Analysis(
-    ['/home/mx/dogovozill4/adapters/desktop_windows/app.py'],
+    ['//wsl.localhost/Ubuntu/home/mx/dogovozill4/adapters/desktop_windows/app.py'],
     pathex=[],
     binaries=[],
-    datas=[('/home/mx/dogovozill4/core', 'core')],
+    datas=[('//wsl.localhost/Ubuntu/home/mx/dogovozill4/core', 'core')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
